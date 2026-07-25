@@ -100,7 +100,7 @@ This gives viewers more context vialy
 Options → Tracker → Plugins
 ```
 
-8. Find **HDT-HDT-BGMMRPlugin** and enable it.
+8. Find **HDT-BGMMRPlugin** and enable it.
 
 The plugin should automatically appear when entering a Hearthstone Battlegrounds match.
 
