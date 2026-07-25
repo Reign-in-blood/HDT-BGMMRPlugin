@@ -106,21 +106,6 @@ The plugin should automatically appear when entering a Hearthstone Battlegrounds
 
 ---
 
-## Display Rules
-
-HDT-BGMMRPlugin uses several visual indicators:
-
-* **Green player name:** your own account.
-* **Red player name:** your current opponent.
-* **Standard player name:** another active opponent.
-* **MMR value:** displayed only for players rated 8,000 or higher.
-* **Tavern icon or value:** the player's current Tavern Tier.
-* **Last opponent icon:** indicates the opponent you fought during the previous combat.
-
-The displayed elements may evolve as the plugin is updated.
-
----
-
 ## Support the Project
 
 The best ways to support HDT-BGMMRPlugin are:
