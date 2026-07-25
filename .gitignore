@@ -1,0 +1,35 @@
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Build results
+bin/
+obj/
+dist/
+
+# Compiled files
+*.dll
+*.exe
+*.pdb
+
+# Local Hearthstone Deck Tracker dependencies
+lib/*
+!lib/PLACEHOLDER.txt
+
+# NuGet
+packages/
+*.nupkg
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+~$*
+.DS_Store
+Thumbs.db
+
+# Local project inspection
+arborescence.txt
