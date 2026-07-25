@@ -8,8 +8,7 @@ The information is updated dynamically throughout the game, even when players ch
 
 
 <p align="center">
-  <img src="Images\Capture d’écran 2026-07-25 150939.png" alt="HDT-BGMMRPlugin preview" width="400">
-  <img src="Images\Capture d’écran 2026-07-25 151141.png" alt="HDT-BGMMRPlugin preview" width="400">
+  <img src="Images\Capture d’écran 2026-07-25 150939.png" alt="HDT-BGMMRPlugin preview" width="500">
 </p>
 
 ---
@@ -25,6 +24,10 @@ The goal is to keep the interface compact, readable and visually integrated with
 This project was also created as a personal programming challenge. I am not a professional programmer, so feedback, testing and contributions are welcome.
 
 ---
+
+<p align="center">
+  <img src="Images\Capture d’écran 2026-07-25 151141.png" alt="HDT-BGMMRPlugin preview" width="500">
+</p>
 
 ## Features
 
