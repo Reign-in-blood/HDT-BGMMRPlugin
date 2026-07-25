@@ -152,3 +152,6 @@ Player information displayed by the plugin depends on the data available during 
 ## License
 
 This project is licensed under the MIT License. See the [`LICENSE`](https://github.com/Reign-in-blood/HDT-BGMMRPlugin/blob/master/LICENSE) file for details.
+
+
+
