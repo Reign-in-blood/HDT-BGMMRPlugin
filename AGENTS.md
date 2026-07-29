@@ -1157,7 +1157,7 @@ public Version Version => new Version(MAJOR, MINOR, PATCH);
 Current release baseline:
 
 ```text
-1.0.4
+1.0.5
 ```
 
 Rules:
@@ -1180,7 +1180,7 @@ Rules:
 Suggested release naming:
 
 ```text
-HDT-BGMMRPlugin_v1.0.4.zip
+HDT-BGMMRPlugin_v1.0.5.zip
 ```
 
 The release archive should contain the correctly named:
@@ -1192,7 +1192,7 @@ HDT-BGMMRPlugin.dll
 For source archives, use an unambiguous name such as:
 
 ```text
-HDT-BGMMRPlugin_v1.0.4_Source.zip
+HDT-BGMMRPlugin_v1.0.5_Source.zip
 ```
 
 ---

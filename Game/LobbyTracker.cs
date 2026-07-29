@@ -25,6 +25,7 @@ namespace BGMMRPlugin.Game
     public sealed class LobbyTracker
     {
         private const string UnknownPlayer = "UNKNOWN HUMAN PLAYER";
+        private const int MinimumUsableLobbyNames = 7;
 
         private static readonly Regex PlayerLineRegex = new Regex(
             @"PlayerID=(?<id>\d+), PlayerName=(?<name>.+?)\s*$",
@@ -261,13 +262,18 @@ namespace BGMMRPlugin.Game
                 player => !player.IsNamePlaceholder
             );
 
-            if (result.Count < 8)
-                return null;
-
             metadataState =
                 metadataUsable >= 8
                     ? "complete"
                     : "partial";
+
+            if (
+                result.Count < 8
+                || metadataUsable < MinimumUsableLobbyNames
+            )
+            {
+                return null;
+            }
 
             gameUuid = lobbyInfo.GameUuid;
             return result;

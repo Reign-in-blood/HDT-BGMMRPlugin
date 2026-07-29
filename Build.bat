@@ -5,7 +5,7 @@ title BGMMRPlugin - DLL Build
 
 echo.
 echo ============================================================
-echo   HDT-BGMMRPlugin v1.0.4 - DLL Build
+echo   HDT-BGMMRPlugin v1.0.5 - DLL Build
 echo ============================================================
 echo.
 

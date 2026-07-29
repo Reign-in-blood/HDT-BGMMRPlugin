@@ -25,7 +25,7 @@ namespace BGMMRPlugin
 
         public string Author => "Benito";
 
-        public Version Version => new Version(1, 0, 4);
+        public Version Version => new Version(1, 0, 5);
 
         public MenuItem MenuItem => null;
 

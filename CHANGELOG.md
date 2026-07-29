@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.5
+
+- Wait for at least seven usable player names before accepting an eight-entry
+  lobby.
+- Avoid freezing transient EU lobby metadata containing two incomplete player
+  identities, which could leave one leaderboard frame without a valid place.
+- Keep the manual-hover fallback for the single remaining unavailable name.
+- Do not resume lobby metadata polling after the stabilized lobby is accepted.
+
 ## 1.0.4
 
 - Added a compatibility fallback for an EU lobby name that is absent from
