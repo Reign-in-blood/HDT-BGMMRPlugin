@@ -45,12 +45,14 @@ namespace BGMMRPlugin.Game
 
         private int _powerLogIndex;
         private string _consumedGameUuid;
+        private string _lastResolutionDiagnostic;
 
         public void Reset()
         {
             _powerLogIndex = 0;
             _namesByPlayerId.Clear();
             _fakePlayerIds.Clear();
+            _lastResolutionDiagnostic = null;
         }
 
         public void MarkCurrentLobbyInfoStale()
@@ -80,7 +82,14 @@ namespace BGMMRPlugin.Game
                 string localName = StripTag(Core.Game.Player?.Name);
 
                 List<LobbyPlayer> players =
-                    TryFromLobbyInfo(localName, out string gameUuid);
+                    TryFromLobbyInfo(
+                        localName,
+                        out string gameUuid,
+                        out string metadataState,
+                        out int metadataTotal,
+                        out int metadataUsable,
+                        out int metadataIgnored
+                    );
 
                 if (players == null)
                 {
@@ -89,7 +98,34 @@ namespace BGMMRPlugin.Game
                 }
 
                 if (players == null || players.Count < 8)
+                {
+                    LogResolutionDiagnostic(
+                        metadataState,
+                        metadataTotal,
+                        metadataUsable,
+                        metadataIgnored
+                    );
+
                     return null;
+                }
+
+                if (string.Equals(
+                    metadataState,
+                    "partial",
+                    StringComparison.Ordinal
+                ))
+                {
+                    LogResolutionDiagnostic(
+                        metadataState,
+                        metadataTotal,
+                        metadataUsable,
+                        metadataIgnored
+                    );
+                }
+                else
+                {
+                    _lastResolutionDiagnostic = null;
+                }
 
                 AttachHeroEntities(players, gameUuid);
 
@@ -112,17 +148,27 @@ namespace BGMMRPlugin.Game
 
         private List<LobbyPlayer> TryFromLobbyInfo(
             string localName,
-            out string gameUuid)
+            out string gameUuid,
+            out string metadataState,
+            out int metadataTotal,
+            out int metadataUsable,
+            out int metadataIgnored)
         {
             gameUuid = null;
+            metadataState = "unavailable";
+            metadataTotal = 0;
+            metadataUsable = 0;
+            metadataIgnored = 0;
 
             var lobbyInfo =
                 Core.Game.MetaData?.BattlegroundsLobbyInfo;
 
             var lobbyPlayers = lobbyInfo?.Players;
 
-            if (lobbyPlayers == null || lobbyPlayers.Count < 8)
+            if (lobbyPlayers == null)
                 return null;
+
+            metadataTotal = lobbyPlayers.Count;
 
             // HDT can retain the preceding game's lobby briefly.
             if (
@@ -134,15 +180,26 @@ namespace BGMMRPlugin.Game
                 )
             )
             {
+                metadataState = "stale";
                 return null;
             }
 
+            metadataState = "incomplete";
+
             List<LobbyPlayer> result = new List<LobbyPlayer>();
             bool localAssigned = false;
+            var localAccountId = Core.Game.MetaData?.AccountId;
 
             foreach (var info in lobbyPlayers)
             {
+                if (info == null)
+                {
+                    metadataIgnored++;
+                    continue;
+                }
+
                 string name = StripTag(info.Name);
+                bool isNamePlaceholder = false;
 
                 if (
                     string.IsNullOrWhiteSpace(name)
@@ -153,7 +210,26 @@ namespace BGMMRPlugin.Game
                     )
                 )
                 {
-                    return null;
+                    metadataIgnored++;
+
+                    bool isLocalAccount =
+                        info.AccountId != null
+                        && localAccountId != null
+                        && info.AccountId.Hi == localAccountId.Hi
+                        && info.AccountId.Lo == localAccountId.Lo;
+
+                    if (
+                        isLocalAccount
+                        && !string.IsNullOrWhiteSpace(localName)
+                    )
+                    {
+                        name = localName;
+                    }
+                    else
+                    {
+                        name = "...";
+                        isNamePlaceholder = true;
+                    }
                 }
 
                 bool isLocal =
@@ -171,6 +247,7 @@ namespace BGMMRPlugin.Game
                 result.Add(new LobbyPlayer
                 {
                     Name = name,
+                    IsNamePlaceholder = isNamePlaceholder,
                     HeroCardId = info.HeroCardId,
                     IsLocalPlayer = isLocal,
                     PlayerId = FindUnusedPlayerId(
@@ -180,8 +257,20 @@ namespace BGMMRPlugin.Game
                 });
             }
 
+            metadataUsable = result.Count(
+                player => !player.IsNamePlaceholder
+            );
+
+            if (result.Count < 8)
+                return null;
+
+            metadataState =
+                metadataUsable >= 8
+                    ? "complete"
+                    : "partial";
+
             gameUuid = lobbyInfo.GameUuid;
-            return result.Count >= 8 ? result : null;
+            return result;
         }
 
         private List<LobbyPlayer> TryFromPowerLog(
@@ -207,6 +296,37 @@ namespace BGMMRPlugin.Game
                         )
                 })
                 .ToList();
+        }
+
+        private void LogResolutionDiagnostic(
+            string metadataState,
+            int metadataTotal,
+            int metadataUsable,
+            int metadataIgnored)
+        {
+            int powerLogUsable = _namesByPlayerId.Count(
+                pair => !_fakePlayerIds.Contains(pair.Key)
+            );
+
+            string diagnostic =
+                "LOBBY WAIT"
+                + $" | metadataState={metadataState}"
+                + $" | metadataTotal={metadataTotal}"
+                + $" | metadataUsable={metadataUsable}"
+                + $" | metadataIgnored={metadataIgnored}"
+                + $" | powerLogUsable={powerLogUsable}";
+
+            if (string.Equals(
+                diagnostic,
+                _lastResolutionDiagnostic,
+                StringComparison.Ordinal
+            ))
+            {
+                return;
+            }
+
+            _lastResolutionDiagnostic = diagnostic;
+            PluginLogger.Info(diagnostic);
         }
 
         public void AttachHeroEntities(

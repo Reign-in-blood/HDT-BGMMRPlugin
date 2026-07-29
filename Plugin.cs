@@ -25,26 +25,27 @@ namespace BGMMRPlugin
 
         public string Author => "Benito";
 
-        public Version Version => new Version(1, 0, 0);
+        public Version Version => new Version(1, 0, 4);
 
         public MenuItem MenuItem => null;
 
         private readonly LobbyTracker _lobbyTracker = new LobbyTracker();
 
         private OfficialBoardClient _boardClient;
+        private HoveredPlayerNameReader _hoveredNameReader;
         private PlayerMmrOverlay _overlay;
 
         private LobbyState _lobby;
         private OfficialBoard _officialBoard;
         private Task<OfficialBoard> _boardLoadTask;
 
-        private string _activeLobbyKey;
         private int _trackedOpponentPlayerId;
         private int _combatOpponentPlayerId;
         private int _lastOpponentPlayerId;
         private bool _pluginEnabled = true;
         private bool _wasInMatch;
         private bool _wasCombatPhase;
+        private string _lastHoverEntityError;
         private DateTime _nextUpdateAt = DateTime.MinValue;
 
         public void OnLoad()
@@ -54,6 +55,9 @@ namespace BGMMRPlugin
             _boardClient = new OfficialBoardClient(
                 PluginLogger.CacheDirectory
             );
+
+            _hoveredNameReader =
+                new HoveredPlayerNameReader();
 
             Core.OverlayCanvas.Dispatcher.Invoke(() =>
             {
@@ -81,7 +85,12 @@ namespace BGMMRPlugin
             _boardClient?.Dispose();
             _boardClient = null;
 
-            ResetMatchState(markLobbyAsStale: true);
+            _hoveredNameReader?.Dispose();
+            _hoveredNameReader = null;
+
+            // Keep the current lobby eligible when HDT reloads the plugin
+            // during a running match.
+            ResetMatchState(markLobbyAsStale: false);
             PluginLogger.Info("Plugin unloaded.");
         }
 
@@ -147,6 +156,8 @@ namespace BGMMRPlugin
                     _lobby.GameUuid
                 );
 
+                TryRecoverHoveredPlayerName();
+
                 int opponentPlayerId =
                     ResolveTrackedOpponentPlayerId();
 
@@ -178,24 +189,12 @@ namespace BGMMRPlugin
 
         private void ResolveLobbyIfNeeded()
         {
+            if (_lobby != null)
+                return;
+
             LobbyState resolved = _lobbyTracker.TryResolveLobby();
             if (resolved == null)
                 return;
-
-            string key = BuildLobbyKey(resolved);
-
-            if (_lobby != null && string.Equals(
-                key,
-                _activeLobbyKey,
-                StringComparison.Ordinal
-            ))
-            {
-                return;
-            }
-
-            _lobby = resolved;
-            _activeLobbyKey = key;
-            _officialBoard = null;
 
             string region = MapRegion();
             if (region == null)
@@ -205,6 +204,9 @@ namespace BGMMRPlugin
                 );
                 return;
             }
+
+            _lobby = resolved;
+            _officialBoard = null;
 
             bool duos = Core.Game.IsBattlegroundsDuosMatch;
 
@@ -251,6 +253,127 @@ namespace BGMMRPlugin
             }
         }
 
+        private void TryRecoverHoveredPlayerName()
+        {
+            if (
+                _hoveredNameReader == null
+                || _lobby?.Players == null
+                || !_lobby.Players.Any(
+                    player => player.IsNamePlaceholder
+                )
+            )
+            {
+                return;
+            }
+
+            int? hoveredEntityId;
+
+            try
+            {
+                hoveredEntityId =
+                    HearthMirror.Reflection.Client
+                        .GetBattlegroundsLeaderboardHoveredEntityId();
+
+                _lastHoverEntityError = null;
+            }
+            catch (Exception ex)
+            {
+                string errorType = ex.GetType().Name;
+
+                if (!string.Equals(
+                    errorType,
+                    _lastHoverEntityError,
+                    StringComparison.Ordinal
+                ))
+                {
+                    _lastHoverEntityError = errorType;
+
+                    PluginLogger.Debug(
+                        "HOVER ENTITY READ FAILED"
+                        + $" | errorType={errorType}"
+                    );
+                }
+
+                return;
+            }
+
+            if (
+                !hoveredEntityId.HasValue
+                || !Core.Game.Entities.TryGetValue(
+                    hoveredEntityId.Value,
+                    out var hoveredEntity
+                )
+                || !hoveredEntity.HasTag(GameTag.PLAYER_ID)
+            )
+            {
+                return;
+            }
+
+            int playerId = hoveredEntity.GetTag(
+                GameTag.PLAYER_ID
+            );
+
+            if (playerId <= 0)
+                return;
+
+            LobbyPlayer player = _lobby.Players.FirstOrDefault(
+                candidate =>
+                    candidate.IsNamePlaceholder
+                    && candidate.PlayerId == playerId
+            );
+
+            if (player == null)
+                return;
+
+            string recoveredName = LobbyTracker.StripTag(
+                _hoveredNameReader.TryRead()
+            );
+
+            if (!IsUsableHoveredName(recoveredName))
+                return;
+
+            player.Name = recoveredName;
+            player.IsNamePlaceholder = false;
+
+            PluginLogger.Info(
+                "LOBBY NAME RECOVERED"
+                + " | source=manualHover"
+                + " | playerIdKnown=True"
+            );
+        }
+
+        private static bool IsUsableHoveredName(string name)
+        {
+            if (
+                string.IsNullOrWhiteSpace(name)
+                || string.Equals(
+                    name,
+                    "...",
+                    StringComparison.Ordinal
+                )
+                || string.Equals(
+                    name,
+                    "UNKNOWN HUMAN PLAYER",
+                    StringComparison.OrdinalIgnoreCase
+                )
+            )
+            {
+                return false;
+            }
+
+            string[] unavailableNames =
+            {
+                "Your Opponent",
+                "Votre adversaire",
+                "Euer Gegner"
+            };
+
+            return !unavailableNames.Contains(
+                name,
+                StringComparer.OrdinalIgnoreCase
+            );
+        }
+
         private PlayerDisplayData[] BuildDisplayData(
             IReadOnlyList<LobbyPlayer> players,
             int opponentPlayerId,
@@ -276,7 +399,11 @@ namespace BGMMRPlugin
 
                 string ratingText;
 
-                if (_officialBoard == null)
+                if (player.IsNamePlaceholder)
+                {
+                    ratingText = "...";
+                }
+                else if (_officialBoard == null)
                 {
                     ratingText = "...";
                 }
@@ -412,19 +539,6 @@ namespace BGMMRPlugin
             return _trackedOpponentPlayerId;
         }
 
-        private static string BuildLobbyKey(LobbyState lobby)
-        {
-            if (!string.IsNullOrWhiteSpace(lobby.GameUuid))
-                return lobby.GameUuid;
-
-            return string.Join(
-                "|",
-                lobby.Players
-                    .Select(p => p.Name ?? string.Empty)
-                    .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
-            );
-        }
-
         private static string MapRegion()
         {
             switch (Core.Game.CurrentRegion)
@@ -456,7 +570,6 @@ namespace BGMMRPlugin
             _lobby = null;
             _officialBoard = null;
             _boardLoadTask = null;
-            _activeLobbyKey = null;
             _trackedOpponentPlayerId = 0;
             _combatOpponentPlayerId = 0;
             _lastOpponentPlayerId = 0;

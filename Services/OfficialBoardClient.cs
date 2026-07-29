@@ -81,7 +81,7 @@ namespace BGMMRPlugin.Services
 
             _httpClient.DefaultRequestHeaders.Add(
                 "User-Agent",
-                "BGMMRPlugin/1.0.0"
+                "HDT-BGMMRPlugin/1.0.4"
             );
         }
 

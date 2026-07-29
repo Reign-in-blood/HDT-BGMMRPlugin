@@ -6,6 +6,8 @@ namespace BGMMRPlugin.Game
     {
         public string Name { get; set; }
 
+        public bool IsNamePlaceholder { get; set; }
+
         public string HeroCardId { get; set; }
 
         public int PlayerId { get; set; }

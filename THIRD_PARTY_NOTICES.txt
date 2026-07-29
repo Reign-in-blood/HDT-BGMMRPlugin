@@ -44,6 +44,14 @@ https://github.com/IBM5100o/BGrank_bot
 No BGrank binary or source file is included in this archive.
 
 
+ScryDotNet
+----------
+
+The hovered-player-name compatibility fallback uses the untapped-scry-dotnet
+runtime already distributed with Hearthstone Deck Tracker. This runtime is
+not redistributed with the plugin.
+
+
 Hearthstone Deck Tracker
 ------------------------
 

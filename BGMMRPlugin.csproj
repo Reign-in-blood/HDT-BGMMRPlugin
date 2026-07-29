@@ -9,10 +9,10 @@
     <Nullable>disable</Nullable>
 
     <RootNamespace>BGMMRPlugin</RootNamespace>
-    <AssemblyName>BGMMRPlugin</AssemblyName>
-    <Version>1.0.0</Version>
-    <AssemblyVersion>1.0.0.0</AssemblyVersion>
-    <FileVersion>1.0.0.0</FileVersion>
+    <AssemblyName>HDT-BGMMRPlugin</AssemblyName>
+    <Version>1.0.4</Version>
+    <AssemblyVersion>1.0.4.0</AssemblyVersion>
+    <FileVersion>1.0.4.0</FileVersion>
     <Product>BGMMRPlugin</Product>
     <Description>HDT overlay for Battlegrounds player MMR, tavern tiers, and opponent markers.</Description>
 
@@ -37,12 +37,18 @@
       <Private>false</Private>
     </Reference>
 
+    <Reference Include="untapped-scry-dotnet">
+      <HintPath>lib\untapped-scry-dotnet.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+
+    <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Net.Http" />
   </ItemGroup>
 
   <ItemGroup>
-    <!-- PNG assets are embedded in BGMMRPlugin.dll at build time. -->
-<None Remove="Assets\*.png" />
+    <!-- PNG assets are embedded in HDT-BGMMRPlugin.dll at build time. -->
+    <None Remove="Assets\*.png" />
     <Resource Include="Assets\*.png" />
   </ItemGroup>
 </Project>

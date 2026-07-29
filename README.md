@@ -37,11 +37,13 @@ This project was also created as a personal programming challenge. I am not a pr
 * Displays your own player name in **green**.
 * Displays your current opponent's name in **red**.
 * Keeps player names associated with the correct avatars when leaderboard positions change.
+* If the EU lobby metadata omits one name, manually hovering that player's
+  Hearthstone portrait lets the plugin recover the name shown by the game.
 
 ### MMR Display
 
 * Displays the MMR rating of opponents with a rating of **8,000 or higher**.
-* Players below 8,000 MMR are not shown.
+* Displays `< 8000` when an exact public MMR is unavailable.
 * Keeps the interface compact by displaying only relevant high-level ratings.
 
 ### Tavern Tier Tracking
@@ -77,7 +79,7 @@ Viewers can immediately see:
 * The Tavern Tier of each opponent.
 * The MMR of high-ranked players.
 
-This gives viewers more context vialy 
+This gives viewers more visual context.
 
 ---
 
@@ -87,7 +89,7 @@ This gives viewers more context vialy
 2. Open the **[latest release page](https://github.com/Reign-in-blood/HDT-BGMMRPlugin/releases)** section of this GitHub repository.
 3. Download the latest published version of HDT-BGMMRPlugin.dll.
 4. Extract the downloaded archive.
-5. Copy the HDT-BGMMRPlugin.dll into the Hearthstone Deck Tracker plugins directory:
+5. Copy HDT-BGMMRPlugin.dll into the Hearthstone Deck Tracker plugins directory:
 
 ```text
 %AppData%\HearthstoneDeckTracker\Plugins

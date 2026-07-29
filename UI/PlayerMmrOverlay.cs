@@ -444,7 +444,7 @@ namespace BGMMRPlugin.UI
                     image.CacheOption = BitmapCacheOption.OnLoad;
                     image.UriSource = new Uri(
                         "pack://application:,,,/"
-                        + "BGMMRPlugin;component/"
+                        + "HDT-BGMMRPlugin;component/"
                         + $"Assets/T{tier}.png",
                         UriKind.Absolute
                     );
@@ -469,7 +469,7 @@ namespace BGMMRPlugin.UI
                 image.CacheOption = BitmapCacheOption.OnLoad;
                 image.UriSource = new Uri(
                     "pack://application:,,,/"
-                    + "BGMMRPlugin;component/"
+                    + "HDT-BGMMRPlugin;component/"
                     + "Assets/Last.PNG",
                     UriKind.Absolute
                 );

@@ -5,14 +5,14 @@ title BGMMRPlugin - DLL Build
 
 echo.
 echo ============================================================
-echo   BGMMRPlugin v1.0.0 - DLL Build
+echo   HDT-BGMMRPlugin v1.0.4 - DLL Build
 echo ============================================================
 echo.
 
 set "PROJECT_DIR=%~dp0"
 set "PROJECT_FILE=%PROJECT_DIR%BGMMRPlugin.csproj"
 set "OUTPUT_DIR=%PROJECT_DIR%dist"
-set "BUILT_DLL=%PROJECT_DIR%bin\Release\BGMMRPlugin.dll"
+set "BUILT_DLL=%PROJECT_DIR%bin\Release\HDT-BGMMRPlugin.dll"
 set "INPUT_PATH=%~1"
 set "MSBUILD="
 set "RESULT_FILE=%TEMP%\BGMMRPlugin_HDT_%RANDOM%_%RANDOM%.txt"
@@ -102,6 +102,7 @@ for %%F in ("%HDT_ASSEMBLY%") do set "HDT_ASSEMBLY_DIR=%%~dpF"
 
 set "HEARTHDB_ASSEMBLY=%HDT_ASSEMBLY_DIR%HearthDb.dll"
 set "HEARTHMIRROR_ASSEMBLY=%HDT_ASSEMBLY_DIR%HearthMirror.dll"
+set "SCRY_ASSEMBLY=%HDT_ASSEMBLY_DIR%untapped-scry-dotnet.dll"
 
 if not exist "%HEARTHDB_ASSEMBLY%" (
     echo.
@@ -123,6 +124,16 @@ if not exist "%HEARTHMIRROR_ASSEMBLY%" (
     exit /b 1
 )
 
+if not exist "%SCRY_ASSEMBLY%" (
+    echo.
+    echo ERROR: untapped-scry-dotnet.dll was not found beside the selected HDT assembly.
+    echo Expected file:
+    echo %SCRY_ASSEMBLY%
+    echo.
+    pause
+    exit /b 1
+)
+
 echo HDT assembly:
 echo %HDT_ASSEMBLY%
 echo.
@@ -134,6 +145,9 @@ copy /Y "%HEARTHDB_ASSEMBLY%" "%PROJECT_DIR%lib\HearthDb.dll" >nul
 if errorlevel 1 goto :copy_error
 
 copy /Y "%HEARTHMIRROR_ASSEMBLY%" "%PROJECT_DIR%lib\HearthMirror.dll" >nul
+if errorlevel 1 goto :copy_error
+
+copy /Y "%SCRY_ASSEMBLY%" "%PROJECT_DIR%lib\untapped-scry-dotnet.dll" >nul
 if errorlevel 1 goto :copy_error
 
 set "VSWHERE=%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
@@ -189,7 +203,7 @@ if errorlevel 1 (
 
 if not exist "%BUILT_DLL%" (
     echo.
-    echo ERROR: BGMMRPlugin.dll was not generated.
+    echo ERROR: HDT-BGMMRPlugin.dll was not generated.
     echo Expected file:
     echo %BUILT_DLL%
     echo.
@@ -197,7 +211,7 @@ if not exist "%BUILT_DLL%" (
     exit /b 1
 )
 
-copy /Y "%BUILT_DLL%" "%OUTPUT_DIR%\BGMMRPlugin.dll" >nul
+copy /Y "%BUILT_DLL%" "%OUTPUT_DIR%\HDT-BGMMRPlugin.dll" >nul
 
 if errorlevel 1 (
     echo.
@@ -213,7 +227,7 @@ echo   BUILD COMPLETED
 echo ============================================================
 echo.
 echo DLL created:
-echo %OUTPUT_DIR%\BGMMRPlugin.dll
+echo %OUTPUT_DIR%\HDT-BGMMRPlugin.dll
 echo.
 echo Copy this DLL to the HDT Plugins folder.
 echo.

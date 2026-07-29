@@ -1,5 +1,41 @@
 # Changelog
 
+## 1.0.4
+
+- Added a compatibility fallback for an EU lobby name that is absent from
+  `BattlegroundsLobbyInfo` but visible in Hearthstone.
+- Read only the currently hovered leaderboard tile, and only while the
+  corresponding player is still displayed as `...`.
+- Associate the recovered name with the hovered hero's `PLAYER_ID`.
+- Keep all known player names on the existing HDT/HearthMirror metadata path.
+- Reuse the ScryDotNet runtime already distributed with HDT; no additional
+  installation file is required.
+- Stop re-resolving lobby metadata every 250 milliseconds after the initial
+  eight-player lobby has been accepted.
+
+## 1.0.3
+
+- Continuously reconcile a placeholder lobby player with refreshed
+  HearthMirror metadata.
+- Replace `...` automatically when the missing EU player name becomes
+  available later in the match.
+- Match the recovered identity by player ID first and by a unique normalized
+  hero ID only as a safe fallback.
+- Log successful recovery without writing the player's name or account ID.
+
+## 1.0.2
+
+- Restored `HDT-BGMMRPlugin.dll` as the canonical release filename.
+- Displayed partial eight-player lobbies with an honest placeholder for an unavailable name.
+- Allowed a missing name to be refreshed later from newly available Power.log data.
+- Allowed the plugin to be reloaded during a running match without rejecting the current lobby as stale.
+
+## 1.0.1
+
+- Made Battlegrounds lobby resolution tolerate invalid metadata entries.
+- Added anonymized, transition-only diagnostics for incomplete lobby data.
+- Preserved the existing Power.log fallback and all display behavior.
+
 ## 1.0.0
 
 - Renamed the release assembly to `BGMMRPlugin.dll`.
