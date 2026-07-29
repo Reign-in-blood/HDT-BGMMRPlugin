@@ -6,10 +6,31 @@ It displays useful information directly beside each player's avatar, including p
 
 The information is updated dynamically throughout the game, even when players change position in the leaderboard.
 
+[Download the latest release](https://github.com/Reign-in-blood/HDT-BGMMRPlugin/releases/latest)
+· [View the complete changelog](CHANGELOG.md)
 
 <p align="center">
   <img src="Images\Capture d’écran 2026-07-25 150939.png" alt="HDT-BGMMRPlugin preview" width="500">
 </p>
+
+---
+
+## Latest Update — v1.0.5
+
+Version 1.0.5 restores reliable lobby display after a Hearthstone update
+changed the player-name metadata returned for some EU Battlegrounds lobbies.
+
+The plugin now:
+
+* Waits for the lobby identities to stabilize before displaying the eight
+  player frames.
+* Prevents a transient incomplete player entry from leaving a frame missing.
+* Displays `...` when Hearthstone does not initially provide one player name.
+* Recovers that missing name when the corresponding native Hearthstone
+  portrait is manually hovered.
+* Preserves the existing behavior for US and other unaffected lobbies.
+
+See [CHANGELOG.md](CHANGELOG.md) for the complete version history.
 
 ---
 
@@ -136,6 +157,17 @@ Compatibility may be affected by:
 * Different screen resolutions.
 * Windows display scaling.
 * Changes to the Battlegrounds interface.
+
+---
+
+## Updates and Release History
+
+Important changes are tracked in [CHANGELOG.md](CHANGELOG.md). Installable
+builds and their release notes are published on the
+[GitHub Releases page](https://github.com/Reign-in-blood/HDT-BGMMRPlugin/releases).
+
+The version is kept consistent in the plugin metadata, project assembly,
+build script and network user-agent for every distributed build.
 
 ---
 

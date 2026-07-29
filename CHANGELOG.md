@@ -1,5 +1,8 @@
 # Changelog
 
+All notable user-facing changes are documented here. Installable builds are
+available from the [GitHub Releases page](https://github.com/Reign-in-blood/HDT-BGMMRPlugin/releases).
+
 ## 1.0.5
 
 - Wait for at least seven usable player names before accepting an eight-entry
