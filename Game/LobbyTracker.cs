@@ -434,6 +434,30 @@ namespace BGMMRPlugin.Game
                     if (place >= 1 && place <= 8)
                         player.LeaderboardPlace = place;
 
+                    int teammatePlayerId = ResolveTaggedPlayerId(
+                        hero,
+                        entities,
+                        player.PlayerId,
+                        GameTag.BACON_DUO_TEAMMATE_PLAYER_ID
+                    );
+
+                    if (
+                        teammatePlayerId > 0
+                        && teammatePlayerId != player.PlayerId
+                    )
+                    {
+                        // Latch the relationship. It remains authoritative if
+                        // an abandoned team later receives transient ranks.
+                        player.TeammatePlayerId = teammatePlayerId;
+                    }
+
+                    player.FightsFirstNextCombat =
+                        ResolveDuosFightsFirst(
+                            hero,
+                            entities,
+                            player.PlayerId
+                        );
+
                     int tavernTier = ResolveTavernTier(
                         hero,
                         entities,
@@ -499,6 +523,64 @@ namespace BGMMRPlugin.Game
             return taggedEntity?.GetTag(
                 GameTag.PLAYER_TECH_LEVEL
             ) ?? 0;
+        }
+
+        private static bool ResolveDuosFightsFirst(
+            Entity hero,
+            IEnumerable<Entity> entities,
+            int playerId)
+        {
+            if (
+                hero != null
+                && hero.HasTag(
+                    GameTag.BACON_DUO_PLAYER_FIGHTS_FIRST_NEXT_COMBAT
+                )
+                && hero.GetTag(
+                    GameTag.BACON_DUO_PLAYER_FIGHTS_FIRST_NEXT_COMBAT
+                ) > 0
+            )
+            {
+                return true;
+            }
+
+            return playerId > 0 && entities.Any(entity =>
+                entity != null
+                && entity.HasTag(GameTag.PLAYER_ID)
+                && entity.GetTag(GameTag.PLAYER_ID) == playerId
+                && entity.HasTag(
+                    GameTag.BACON_DUO_PLAYER_FIGHTS_FIRST_NEXT_COMBAT
+                )
+                && entity.GetTag(
+                    GameTag.BACON_DUO_PLAYER_FIGHTS_FIRST_NEXT_COMBAT
+                ) > 0
+            );
+        }
+
+        private static int ResolveTaggedPlayerId(
+            Entity hero,
+            IEnumerable<Entity> entities,
+            int playerId,
+            GameTag tag)
+        {
+            if (hero != null && hero.HasTag(tag))
+            {
+                int value = hero.GetTag(tag);
+                if (value > 0)
+                    return value;
+            }
+
+            if (playerId <= 0)
+                return 0;
+
+            Entity taggedEntity = entities.FirstOrDefault(entity =>
+                entity != null
+                && entity.HasTag(GameTag.PLAYER_ID)
+                && entity.GetTag(GameTag.PLAYER_ID) == playerId
+                && entity.HasTag(tag)
+                && entity.GetTag(tag) > 0
+            );
+
+            return taggedEntity?.GetTag(tag) ?? 0;
         }
 
         private static Entity FindAuthoritativeHero(

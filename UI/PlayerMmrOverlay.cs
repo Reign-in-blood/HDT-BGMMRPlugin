@@ -45,6 +45,29 @@ namespace BGMMRPlugin.UI
             822.0
         };
 
+        // ================================================================
+        // DUOS-ONLY LAYOUT START
+        // Reference coordinates are measured on a 1920 x 1080 game area.
+        // Each consecutive pair belongs to one Duos team.
+        // Change only these arrays when calibrating Duos frame positions.
+        // ================================================================
+        private static readonly double[] DuosReferenceSlotLeft =
+        {
+            245.0, 245.0,
+            242.0, 242.0,
+            239.0, 239.0,
+            236.0, 236.0
+        };
+
+        private static readonly double[] DuosReferenceSlotTop =
+        {
+            178.0, 212.0,
+            365.0, 399.0,
+            552.0, 586.0,
+            739.0, 773.0
+        };
+        // DUOS-ONLY LAYOUT END
+
         private const double ReferenceLabelWidth = 90.0;
         private const double ReferenceLabelHeight = 28.0;
         private const double ReferenceOpponentOffset = 30.0;
@@ -111,6 +134,7 @@ namespace BGMMRPlugin.UI
             );
 
         private bool _isAttached;
+        private bool _isDuos;
 
         public PlayerMmrOverlay()
         {
@@ -169,8 +193,11 @@ namespace BGMMRPlugin.UI
         }
 
         public void Display(
-            PlayerDisplayData[] display)
+            PlayerDisplayData[] display,
+            bool isDuos)
         {
+            _isDuos = isDuos;
+
             if (display == null || display.Length < SlotCount)
             {
                 HideAll();
@@ -362,8 +389,12 @@ namespace BGMMRPlugin.UI
                 _ratingTexts[index].FontSize =
                     9.5 * scale;
 
+                // DUOS-ONLY POSITION SELECTION: Solo coordinates remain
+                // untouched when _isDuos is false.
                 double referenceLeft =
-                    ReferenceSlotLeft[index]
+                    (_isDuos
+                        ? DuosReferenceSlotLeft[index]
+                        : ReferenceSlotLeft[index])
                     + (
                         _opponentSlots[index]
                             ? ReferenceOpponentOffset
@@ -381,7 +412,9 @@ namespace BGMMRPlugin.UI
                 double top =
                     contentTop
                     + (
-                        ReferenceSlotTop[index]
+                        (_isDuos
+                            ? DuosReferenceSlotTop[index]
+                            : ReferenceSlotTop[index])
                         / ReferenceHeight
                     )
                     * contentHeight;

@@ -3,6 +3,41 @@
 All notable user-facing changes are documented here. Installable builds are
 available from the [GitHub Releases page](https://github.com/Reign-in-blood/HDT-BGMMRPlugin/releases).
 
+## 1.0.9
+
+- Pair Duos players through `BACON_DUO_TEAMMATE_PLAYER_ID` instead of relying
+  on transient individual leaderboard places.
+- Latch teammate relationships so an early concession cannot split a team or
+  mix players from two groups.
+- Keep leaderboard places as team-ordering signals only, with safe fallbacks
+  while Hearthstone reports temporary ties or uneven group sizes.
+
+## 1.0.8
+
+- Order both players in each Duos group using
+  `BACON_DUO_PLAYER_FIGHTS_FIRST_NEXT_COMBAT`.
+- Track `NEXT_OPPONENT_TEAMMATE_PLAYER_ID` so both members of the next opposing
+  team receive the red state and the 30-pixel horizontal offset.
+- Keep all Solo ordering and opponent behavior unchanged.
+
+## 1.0.7
+
+- Stop treating `BACON_DUO_TEAM_ID` as a shared partner key after in-game
+  diagnostics showed that it could split one leaderboard pair.
+- Keep all eight resolved Duos players visible while leaderboard places arrive
+  progressively or temporarily contain ties.
+- Use the shared leaderboard place only to order Duos players, with unranked
+  players retained at the end instead of hidden.
+
+## 1.0.6
+
+- Preserve both partners in Duos when they share the same team leaderboard
+  place instead of treating the second player as a transient duplicate.
+- Group the eight Duos players into four stable two-player team rows.
+- Add a separate first-pass Duos overlay layout without changing Solo
+  coordinates.
+- Add anonymized Duos team-structure diagnostics for in-game calibration.
+
 ## 1.0.5
 
 - Wait for at least seven usable player names before accepting an eight-entry
