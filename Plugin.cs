@@ -25,7 +25,7 @@ namespace BGMMRPlugin
 
         public string Author => "Benito";
 
-        public Version Version => new Version(1, 0, 5);
+        public Version Version => new Version(1, 0, 9);
 
         public MenuItem MenuItem => null;
 
@@ -40,12 +40,14 @@ namespace BGMMRPlugin
         private Task<OfficialBoard> _boardLoadTask;
 
         private int _trackedOpponentPlayerId;
+        private int _trackedOpponentTeammatePlayerId;
         private int _combatOpponentPlayerId;
         private int _lastOpponentPlayerId;
         private bool _pluginEnabled = true;
         private bool _wasInMatch;
         private bool _wasCombatPhase;
         private string _lastHoverEntityError;
+        private string _lastDuosStructureDiagnostic;
         private DateTime _nextUpdateAt = DateTime.MinValue;
 
         public void OnLoad()
@@ -169,7 +171,9 @@ namespace BGMMRPlugin
                     BuildDisplayData(
                         _lobby.Players,
                         opponentPlayerId,
-                        _lastOpponentPlayerId
+                        _trackedOpponentTeammatePlayerId,
+                        _lastOpponentPlayerId,
+                        Core.Game.IsBattlegroundsDuosMatch
                     );
 
                 Core.OverlayCanvas.Dispatcher.Invoke(() =>
@@ -177,7 +181,10 @@ namespace BGMMRPlugin
                     if (_overlay == null)
                         return;
 
-                    _overlay.Display(display);
+                    _overlay.Display(
+                        display,
+                        Core.Game.IsBattlegroundsDuosMatch
+                    );
                     _overlay.UpdateLayout();
                 });
             }
@@ -377,12 +384,25 @@ namespace BGMMRPlugin
         private PlayerDisplayData[] BuildDisplayData(
             IReadOnlyList<LobbyPlayer> players,
             int opponentPlayerId,
-            int lastOpponentPlayerId)
+            int opponentTeammatePlayerId,
+            int lastOpponentPlayerId,
+            bool duos)
         {
             PlayerDisplayData[] result =
                 Enumerable.Range(1, 8)
                     .Select(place => PlayerDisplayData.Hidden(place))
                     .ToArray();
+
+            if (duos)
+            {
+                return BuildDuosDisplayData(
+                    players,
+                    result,
+                    opponentPlayerId,
+                    opponentTeammatePlayerId,
+                    lastOpponentPlayerId
+                );
+            }
 
             HashSet<int> occupiedPlaces = new HashSet<int>();
 
@@ -445,6 +465,221 @@ namespace BGMMRPlugin
             return result;
         }
 
+        private PlayerDisplayData[] BuildDuosDisplayData(
+            IReadOnlyList<LobbyPlayer> players,
+            PlayerDisplayData[] result,
+            int opponentPlayerId,
+            int opponentTeammatePlayerId,
+            int lastOpponentPlayerId)
+        {
+            var rankedGroups = players
+                .Where(player =>
+                    player.LeaderboardPlace >= 1
+                    && player.LeaderboardPlace <= 8
+                )
+                .GroupBy(player => player.LeaderboardPlace)
+                .OrderBy(group => group.Key)
+                .ToList();
+
+            int unrankedCount = players.Count(player =>
+                player.LeaderboardPlace < 1
+                || player.LeaderboardPlace > 8
+            );
+
+            string diagnostic = "DUOS STRUCTURE"
+                + $" | players={players.Count}"
+                + $" | places={rankedGroups.Count}"
+                + " | members="
+                + string.Join(
+                    ",",
+                    rankedGroups.Select(group =>
+                        $"{group.Key}:{group.Count()}"
+                    )
+                )
+                + $" | unranked={unrankedCount}";
+
+            List<List<LobbyPlayer>> teams =
+                BuildStableDuosTeams(players);
+
+            int linkedTeamCount = teams.Count(team =>
+                team.Count == 2
+                && (
+                    team[0].TeammatePlayerId == team[1].PlayerId
+                    || team[1].TeammatePlayerId == team[0].PlayerId
+                )
+            );
+
+            diagnostic += $" | linkedTeams={linkedTeamCount}";
+
+            if (!string.Equals(
+                diagnostic,
+                _lastDuosStructureDiagnostic,
+                StringComparison.Ordinal
+            ))
+            {
+                _lastDuosStructureDiagnostic = diagnostic;
+                PluginLogger.Info(diagnostic);
+            }
+
+            LobbyPlayer[] orderedPlayers = teams
+                .OrderBy(team => team
+                    .Select(player => player.LeaderboardPlace)
+                    .Where(place => place >= 1 && place <= 8)
+                    .DefaultIfEmpty(9)
+                    .Min()
+                )
+                .SelectMany(team => team
+                    .OrderByDescending(player =>
+                        player.FightsFirstNextCombat
+                    )
+                    .ThenBy(player =>
+                        player.PlayerId <= 0
+                            ? int.MaxValue
+                            : player.PlayerId
+                    )
+                )
+                .Take(8)
+                .ToArray();
+
+            for (int index = 0; index < orderedPlayers.Length; index++)
+            {
+                result[index] = CreateDisplayData(
+                    orderedPlayers[index],
+                    index + 1,
+                    opponentPlayerId,
+                    opponentTeammatePlayerId,
+                    lastOpponentPlayerId
+                );
+            }
+
+            return result;
+        }
+
+        private static List<List<LobbyPlayer>> BuildStableDuosTeams(
+            IReadOnlyList<LobbyPlayer> players)
+        {
+            List<LobbyPlayer> remaining = players
+                .Where(player => player != null)
+                .ToList();
+
+            List<List<LobbyPlayer>> teams =
+                new List<List<LobbyPlayer>>();
+
+            // Resolve every explicit relationship first so a player cannot be
+            // consumed by a temporary-place fallback before their partner.
+            foreach (LobbyPlayer player in players)
+            {
+                if (player == null || !remaining.Contains(player))
+                    continue;
+
+                LobbyPlayer linkedTeammate = remaining
+                    .FirstOrDefault(candidate =>
+                        !ReferenceEquals(candidate, player)
+                        && (
+                            (
+                                player.TeammatePlayerId > 0
+                                && candidate.PlayerId
+                                    == player.TeammatePlayerId
+                            )
+                            || (
+                                candidate.TeammatePlayerId > 0
+                                && candidate.TeammatePlayerId
+                                    == player.PlayerId
+                            )
+                        )
+                    );
+
+                if (linkedTeammate == null)
+                    continue;
+
+                teams.Add(new List<LobbyPlayer>
+                {
+                    player,
+                    linkedTeammate
+                });
+
+                remaining.Remove(player);
+                remaining.Remove(linkedTeammate);
+            }
+
+            // Fall back only for relationships not exposed yet at match start.
+            while (remaining.Count > 0)
+            {
+                LobbyPlayer player = remaining[0];
+                LobbyPlayer teammate = remaining
+                    .Skip(1)
+                    .FirstOrDefault(candidate =>
+                        player.LeaderboardPlace >= 1
+                        && player.LeaderboardPlace
+                            == candidate.LeaderboardPlace
+                    );
+
+                if (teammate == null && remaining.Count > 1)
+                    teammate = remaining[1];
+
+                List<LobbyPlayer> team =
+                    new List<LobbyPlayer> { player };
+
+                remaining.Remove(player);
+
+                if (teammate != null)
+                {
+                    team.Add(teammate);
+                    remaining.Remove(teammate);
+                }
+
+                teams.Add(team);
+            }
+
+            return teams;
+        }
+
+        private PlayerDisplayData CreateDisplayData(
+            LobbyPlayer player,
+            int displayPlace,
+            int opponentPlayerId,
+            int opponentTeammatePlayerId,
+            int lastOpponentPlayerId)
+        {
+            string ratingText;
+
+            if (player.IsNamePlaceholder || _officialBoard == null)
+            {
+                ratingText = "...";
+            }
+            else if (_officialBoard.TryGetRating(player.Name, out int rating))
+            {
+                ratingText = rating.ToString(
+                    "N0",
+                    System.Globalization.CultureInfo.InvariantCulture
+                );
+            }
+            else
+            {
+                ratingText = "< 8000";
+            }
+
+            return new PlayerDisplayData
+            {
+                Place = displayPlace,
+                Name = player.Name,
+                RatingText = ratingText,
+                TavernTier = player.TavernTier,
+                IsVisible = true,
+                IsLocalPlayer = player.IsLocalPlayer,
+                IsCurrentOpponent =
+                    player.PlayerId > 0
+                    && (
+                        player.PlayerId == opponentPlayerId
+                        || player.PlayerId == opponentTeammatePlayerId
+                    ),
+                IsLastOpponent =
+                    lastOpponentPlayerId > 0
+                    && player.PlayerId == lastOpponentPlayerId,
+                IsDead = player.IsDead
+            };
+        }
+
         private void UpdateLastOpponentTracking(
             int currentOpponentPlayerId)
         {
@@ -488,6 +723,7 @@ namespace BGMMRPlugin
             try
             {
                 int nextOpponentId = 0;
+                int nextOpponentTeammateId = 0;
 
                 if (
                     Core.Game.PlayerEntity != null
@@ -499,6 +735,19 @@ namespace BGMMRPlugin
                     nextOpponentId =
                         Core.Game.PlayerEntity.GetTag(
                             GameTag.NEXT_OPPONENT_PLAYER_ID
+                        );
+                }
+
+                if (
+                    Core.Game.PlayerEntity != null
+                    && Core.Game.PlayerEntity.HasTag(
+                        GameTag.NEXT_OPPONENT_TEAMMATE_PLAYER_ID
+                    )
+                )
+                {
+                    nextOpponentTeammateId =
+                        Core.Game.PlayerEntity.GetTag(
+                            GameTag.NEXT_OPPONENT_TEAMMATE_PLAYER_ID
                         );
                 }
 
@@ -514,6 +763,11 @@ namespace BGMMRPlugin
                 )
                 {
                     _trackedOpponentPlayerId = nextOpponentId;
+                    _trackedOpponentTeammatePlayerId =
+                        nextOpponentTeammateId > 0
+                        && nextOpponentTeammateId != nextOpponentId
+                            ? nextOpponentTeammateId
+                            : 0;
                 }
                 else if (
                     _trackedOpponentPlayerId <= 0
@@ -571,8 +825,10 @@ namespace BGMMRPlugin
             _officialBoard = null;
             _boardLoadTask = null;
             _trackedOpponentPlayerId = 0;
+            _trackedOpponentTeammatePlayerId = 0;
             _combatOpponentPlayerId = 0;
             _lastOpponentPlayerId = 0;
+            _lastDuosStructureDiagnostic = null;
             _wasCombatPhase = false;
             _nextUpdateAt = DateTime.MinValue;
         }

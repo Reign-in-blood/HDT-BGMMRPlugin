@@ -12,9 +12,13 @@ namespace BGMMRPlugin.Game
 
         public int PlayerId { get; set; }
 
+        public int TeammatePlayerId { get; set; }
+
         public int LeaderboardPlace { get; set; }
 
         public int TavernTier { get; set; }
+
+        public bool FightsFirstNextCombat { get; set; }
 
         public bool IsLocalPlayer { get; set; }
 
